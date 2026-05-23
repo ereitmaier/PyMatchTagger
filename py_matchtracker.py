@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# ZaVr2 Match App - Pythonista (English)
+# Football Match Tagger  App - Pythonista (English)
 # Place match.yaml in the same folder as this script
 
 import collections
