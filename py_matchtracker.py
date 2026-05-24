@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
-# Football Match Tagger  App - Pythonista (English)
+# ZaVr2 Match App - Pythonista (English)
+# Version: 1.0.3
 # Place match.yaml in the same folder as this script
+
+APP_VERSION = '1.0.3'
 
 import collections
 import collections.abc
@@ -276,9 +279,9 @@ def tapped_end(sender):
     if p is None:
         return
 
-    # Na periode 2 (of 4 bij verlenging): altijd einde wedstrijd popup
+    # After period 2 (or 4 in extra time): always show end match popup
     is_end_match    = (p == 4)
-    # Na periode 2: vraag of verlenging of einde wedstrijd
+    # After period 2: ask end match or extra time
     is_after_normal = (p == 2)
 
     pw  = 340
@@ -294,7 +297,7 @@ def tapped_end(sender):
     elif is_after_normal:
         question = f'End of Period {p}\nEnd match or extra time?'
     else:
-        vraag = f'End Period {p}?\nTimer gaat naar 00:00.'
+        question = f'End of Period {p}?\nTimer resets to 00:00.'
 
     lbl                 = ui.Label()
     lbl.frame           = (12, 14, pw - 24, 50)
@@ -322,7 +325,7 @@ def tapped_end(sender):
     cancel = lambda s: confirm.close()
 
     if is_end_match:
-        # Alleen bewaar/sluit opties
+        # Save/close options only
         def save_and_close(s):
             do_save()
             do_reset_timer()
@@ -335,7 +338,7 @@ def tapped_end(sender):
         make_popup_btn('Close without saving',12,  y2, pw-24, '#c0392b', close_only)
 
     elif is_after_normal:
-        # Einde wedstrijd of verlenging (P3)
+        # End match or extra time (P3)
         def end_match(s):
             show_end_match_popup()
             confirm.close()
@@ -394,7 +397,7 @@ def show_end_match_popup():
         b.action           = action
         popup.add_subview(b)
 
-    maak_b('Save & close',       12,       62, btn_w, '#27ae60', bewaar)
+    maak_b('Save & close',       12,       62, btn_w, '#27ae60', save_and_close)
     maak_b('Cancel',             24+btn_w, 62, btn_w, '#7f8c8d', lambda s: popup.close())
     maak_b('Close without saving', 12,      112, pw-24, '#c0392b', zonder)
 
@@ -413,10 +416,10 @@ def do_end_period():
     btn_a.title            = 'Start'
     btn_a.background_color = '#27ae60'
     btn_a.action           = tapped_start
-    # Knop B: volgende periode, disabled tot Start
+    # Button B: next period, disabled until Start
     btn_b                  = main_view['end_btn']
     next_period            = state.period + 1
-    btn_b.title            = f'End Period {volgende}'
+    btn_b.title            = f'End Period {next_period}'
     btn_b.enabled          = False
     btn_b.background_color = '#555555'
 
@@ -440,7 +443,7 @@ def do_reset_timer():
 
 def do_save():
     """Sla match op als YAML met vaste veldvolgorde."""
-    EVENT_VOLGORDE = ['tijd', 'event', 'own_goal', 'icon', 'player', 'team', 'extra']
+    FIELD_ORDER = ['time', 'event', 'own_goal', 'icon', 'player', 'team', 'extra']
 
     def order_entry(entry):
         return {k: entry[k] for k in FIELD_ORDER if k in entry}
@@ -451,7 +454,7 @@ def do_save():
     }
     filename = f'match_{datetime.now().strftime("%Y%m%d_%H%M")}.yaml'
 
-    # Schrijf met vaste volgorde via custom Dumper
+    # Write with fixed field order via custom Dumper
     class OrderedDumper(yaml.Dumper):
         pass
     OrderedDumper.add_representer(
@@ -509,7 +512,7 @@ def show_period_popup(start_btn):
                 if btn_b:
                     btn_b.title   = f'End Period {period}'
                     btn_b.enabled = True
-                    # P4 = laatste verlenging = donkerrood, anders rood
+                    # P4 = last extra time period = dark red, otherwise red
                     btn_b.background_color = '#8e0000' if period == 4 else '#c0392b'
                 update_display()
                 popup.close()
@@ -679,14 +682,14 @@ def show_lineup_screen():
         lbl.alignment  = ui.ALIGN_CENTER
         panel.add_subview(lbl)
 
-        teller            = ui.Label()
-        teller.name       = f'counter_{team}'
-        teller.frame      = (col_start[team], 74, col_w, 20)
-        teller.text       = f'Starters: {state.starter_count(team)} / 11'
-        teller.font       = ('<system>', 12)
-        teller.text_color = '#aaaaaa'
-        teller.alignment  = ui.ALIGN_CENTER
-        panel.add_subview(teller)
+        counter            = ui.Label()
+        counter.name       = f'counter_{team}'
+        counter.frame      = (col_start[team], 74, col_w, 20)
+        counter.text       = f'Starters: {state.starter_count(team)} / 11'
+        counter.font       = ('<system>', 12)
+        counter.text_color = '#aaaaaa'
+        counter.alignment  = ui.ALIGN_CENTER
+        panel.add_subview(counter)
 
         scroll                  = ui.ScrollView()
         scroll.frame            = (col_start[team], 98, col_w, ph - 170)
@@ -705,39 +708,39 @@ def show_lineup_screen():
             x   = 4 + col * (btn_w + 6)
             y   = 4 + row * (btn_h + 6)
 
-            huidige = state.status[team][p['name']]
-            if huidige == 'starter':   kleur = clr_s
-            elif huidige == 'sub': kleur = clr_sub
-            else:                    kleur = '#444455'
+            current = state.status[team][sp['name']]
+            if current == 'starter':   clr = clr_s
+            elif current == 'sub':     clr = clr_sub
+            else:                      clr = '#444455'
 
-            sb              = ui.Button(title=f'{sp["nummer"]} {sp["name"]}')
+            sb              = ui.Button(title=f'{sp["number"]} {sp["name"]}')
             sb.name         = f'lineup_{team}_{sp["name"]}'
             sb.frame        = (x, y, btn_w, btn_h)
-            sb.background_color = kleur
+            sb.background_color = clr
             sb.tint_color   = 'white'
             sb.corner_radius = 6
             sb.font         = ('<system>', 13)
 
-            def make_handler(t, name, knop, tl, kb, kw):
+            def make_handler(t, name, btn_ref, ctr, cs, csub):
                 def handler(s):
-                    huidig = state.status[t][name]
-                    if huidig is None:
+                    current = state.status[t][name]
+                    if current is None:
                         if state.starter_count(t) < 11:
-                            state.status[t][name]  = 'starter'
-                            knop.background_color  = kb
+                            state.status[t][name]    = 'starter'
+                            btn_ref.background_color = cs
                         else:
-                            state.status[t][name]  = 'sub'
-                            knop.background_color  = kw
-                    elif huidig == 'starter':
-                        state.status[t][name]  = 'sub'
-                        knop.background_color  = kw
-                    elif huidig == 'sub':
-                        state.status[t][name]  = None
-                        knop.background_color  = '#444455'
-                    tl.text = f'Basis: {state.starter_count(t)} / 11'
+                            state.status[t][name]    = 'sub'
+                            btn_ref.background_color = csub
+                    elif current == 'starter':
+                        state.status[t][name]    = 'sub'
+                        btn_ref.background_color = csub
+                    elif current == 'sub':
+                        state.status[t][name]    = None
+                        btn_ref.background_color = '#444455'
+                    ctr.text = f'Starters: {state.starter_count(t)} / 11'
                 return handler
 
-            sb.action = maak_handler(team, p['name'], sb, teller, clr_s, clr_sub)
+            sb.action = make_handler(team, sp['name'], sb, counter, clr_s, clr_sub)
             scroll.add_subview(sb)
 
         rows_needed         = -(-len(players[:18]) // btn_cols)
@@ -752,11 +755,11 @@ def show_lineup_screen():
     leg.alignment  = ui.ALIGN_CENTER
     panel.add_subview(leg)
 
-    # Klaar knop — sluit opstelling, wedstrijd nog NIET gestart
+    # Done button — closes lineup screen, match not yet started
     def klaar(s):
         main_view['lineup_btn'].title            = 'Lineup'
         main_view['lineup_btn'].background_color = '#27ae60'
-        # Activeer de Start knop
+        # Activate the Start button
         btn_sp          = main_view['start_pause_btn']
         btn_sp.enabled  = True
         btn_sp.title    = 'Start'
@@ -849,14 +852,14 @@ def refresh_log():
             team_label = f' [{data["match"]["home"]}]'
         elif e['team'] == 'away':
             team_label = f' [{data["match"]["away"]}]'
-        regel = f'{e["tijd"]} {e["icon"]} {e["event"]}{team_label}'
+        line  = f'{e["time"]} {e["icon"]} {e["event"]}{team_label}'
         if e.get('own_goal'):
-            regel += ' (OG)'
+            line += ' (OG)'
         if e['player']:
-            regel += f' - {e["player"]}'
+            line += f' - {e["player"]}'
         if e['extra']:
-            regel += f' > {e["extra"]}'
-        lines.append(regel)
+            line += f' > {e["extra"]}'
+        lines.append(line)
     main_view['log_view'].text = '\n'.join(lines)
 
 def log_event(event_data, player, team, extra, own_goal=False):
@@ -884,14 +887,14 @@ def log_event(event_data, player, team, extra, own_goal=False):
     # Rode kaart: player uitsluiten
     if event_data['name'] == 'Red card' and player:
         state.suspended.add(player)
-        # Als basisplayer: verwijder uit basis (team heeft nu 10)
+        # If starter: remove from starters (team now has 10)
         if player in state.status.get(team, {}):
             state.status[team][player] = None
         print(f'  {player} uitgesloten (rode kaart)')
 
     parts = [t, get_icon(event_data['name']), event_data['name']]
-    if own_goal: delen.append('(eigen doel)')
-    if player:     delen.append(f'({team}) {player}')
+    if own_goal: parts.append('(own goal)')
+    if player:   parts.append(f'({team}) {player}')
     if extra:    parts.append(f'> {extra}')
     print(' | '.join(parts))
 
@@ -906,7 +909,7 @@ def log_event(event_data, player, team, extra, own_goal=False):
 # ---------------------------------------------------------------------------
 # Player scroll list helper
 # ---------------------------------------------------------------------------
-def maak_player_scroll(parent, players_info, x, y, w, h, geselecteerd):
+def make_player_scroll(parent, players_info, x, y, w, h, geselecteerd):
     btn_cols = 2
     btn_w    = (w - 8 - (btn_cols - 1) * 6) // btn_cols
     btn_h    = 38
@@ -923,7 +926,7 @@ def maak_player_scroll(parent, players_info, x, y, w, h, geselecteerd):
         row = idx // btn_cols
         sb  = ui.Button(title=info['name'])
         sb.frame            = (4 + col * (btn_w + 6), 4 + row * (btn_h + 4), btn_w, btn_h)
-        sb.background_color = info['kleur']
+        sb.background_color = info['color']
         sb.tint_color       = 'white'
         sb.corner_radius    = 6
         sb.font             = ('<system>', 13)
@@ -990,8 +993,8 @@ def show_popup(event_data, team):
         popup.add_subview(lbl_uit)
         y += 26
 
-        uit_info = [{'name': n, 'kleur': clr_starter} for n in basis_namen]
-        maak_player_scroll(popup, uit_info, PAD, y, pw - 2 * PAD, 140, selected_player)
+        uit_info = [{'name': n, 'color': clr_starter} for n in basis_namen]
+        make_player_scroll(popup, uit_info, PAD, y, pw - 2 * PAD, 140, selected_player)
         y += 150
 
         lbl_in            = ui.Label()
@@ -1002,8 +1005,8 @@ def show_popup(event_data, team):
         popup.add_subview(lbl_in)
         y += 26
 
-        in_info = [{'name': n, 'kleur': clr_sub} for n in wissel_namen]
-        maak_player_scroll(popup, in_info, PAD, y, pw - 2 * PAD, 140, selected_sub_in)
+        in_info = [{'name': n, 'color': clr_sub} for n in wissel_namen]
+        make_player_scroll(popup, in_info, PAD, y, pw - 2 * PAD, 140, selected_sub_in)
         y += 150
 
     else:
@@ -1032,16 +1035,16 @@ def show_popup(event_data, team):
         popup.add_subview(sp_lbl)
         y += 26
 
-        sp_info = []
-        for sp in players_list[:18]:
-            if p['name'] in state.suspended:
+        pl_info = []
+        for player in players_list[:18]:
+            if player['name'] in state.suspended:
                 continue
-            if state.status[team].get(p['name']) != 'starter':
+            if state.status[team].get(player['name']) != 'starter':
                 continue
-            sp_info.append({'name': f'{sp["nummer"]} {sp["name"]}', 'kleur': clr_starter})
+            pl_info.append({'name': f'{player["number"]} {player["name"]}', 'color': clr_starter})
 
-        scroll_h = min(max(-(-len(sp_info) // 2) * 42 + 8, 50), 200)
-        maak_player_scroll(popup, sp_info, PAD, y, pw - 2 * PAD, scroll_h, selected_player)
+        scroll_h = min(max(-(-len(pl_info) // 2) * 42 + 8, 50), 200)
+        make_player_scroll(popup, pl_info, PAD, y, pw - 2 * PAD, scroll_h, selected_player)
         y += scroll_h + 10
 
         # ---- ASSIST ----
@@ -1054,24 +1057,22 @@ def show_popup(event_data, team):
             popup.add_subview(as_lbl)
             y += 26
 
-            # Alleen basisplayers van hetzelfde team, schutter zelf uitgesloten
-            schutter_raw = selected_player[0] or ''
-            schutter = (schutter_raw.split(' ', 1)[1]
-                        if ' ' in schutter_raw and schutter_raw.split(' ', 1)[0].isdigit()
-                        else schutter_raw)
-            kb = CLR_HOME_STARTER if team == 'home' else CLR_AWAY_STARTER
-            alle_assist = []
-            for sp in data.get(team, []):
-                if p['name'] in state.suspended:
+            # Only starters of same team, excluding the scorer
+            raw    = selected_player[0] or ''
+            scorer = raw.split(' ', 1)[1] if ' ' in raw and raw.split(' ', 1)[0].isdigit() else raw
+            clr_a  = CLR_HOME_STARTER if team == 'home' else CLR_AWAY_STARTER
+            assist_info = []
+            for player in data.get(team, []):
+                if player['name'] in state.suspended:
                     continue
-                if p['name'] == schutter:
+                if player['name'] == scorer:
                     continue
-                if state.status[team].get(p['name']) != 'starter':
+                if state.status[team].get(player['name']) != 'starter':
                     continue
-                alle_assist.append({'name': p['name'], 'kleur': kb})
+                assist_info.append({'name': player['name'], 'color': clr_a})
 
-            as_h = min(max(-(-len(alle_assist) // 2) * 42 + 8, 50), 160)
-            maak_player_scroll(popup, alle_assist, PAD, y, pw - 2 * PAD, as_h, selected_extra)
+            as_h = min(max(-(-len(assist_info) // 2) * 42 + 8, 50), 160)
+            make_player_scroll(popup, assist_info, PAD, y, pw - 2 * PAD, as_h, selected_extra)
             y += as_h + 10
 
         # ---- RESULTAAT ----
@@ -1190,11 +1191,11 @@ def show_popup(event_data, team):
         b.action           = action
         return b
 
-    popup.add_subview(maak_popup_btn('Confirm',
+    popup.add_subview(make_action_btn('Confirm',
         PAD, '#27ae60', confirm))
-    popup.add_subview(maak_popup_btn('Geen player',
+    popup.add_subview(make_action_btn('No player',
         PAD + btn_w + PAD, '#7f8c8d', geen_player))
-    popup.add_subview(maak_popup_btn('Cancel',
+    popup.add_subview(make_action_btn('Cancel',
         PAD + 2 * (btn_w + PAD), '#c0392b', cancel))
 
     popup.present('popover')
